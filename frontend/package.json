@@ -25,5 +25,8 @@
       "src/**/*.{js,jsx}",
       "!src/index.js"
     ]
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1"
   }
 }
