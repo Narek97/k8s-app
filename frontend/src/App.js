@@ -127,7 +127,7 @@ function App() {
     <div style={{ maxWidth: '1200px', margin: '20px auto', padding: '20px', fontFamily: 'Arial' }}>
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-        <h1 style={{ color: '#333', margin: '10px 0' }}>🚀 Advanced Kubernetes App</h1>
+        <h1 style={{ color: '#333', margin: '10px 0' }}>🚀 Advanced Kubernetes App V2</h1>
         <p style={{ color: '#666', margin: '5px 0' }}>
           React + Node.js + PostgreSQL + Redis on Kubernetes
         </p>
