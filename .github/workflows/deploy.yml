@@ -19,26 +19,29 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
     
     - name: Install dependencies
       working-directory: ./backend
-      run: npm install
+      run: npm ci
     
     - name: Run tests
       working-directory: ./backend
       run: npm test
     
     - name: Upload coverage
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: backend-coverage
         path: backend/coverage/
+        retention-days: 7
 
   # Job 2: Test Frontend
   test-frontend:
@@ -47,26 +50,29 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
     
     - name: Install dependencies
       working-directory: ./frontend
-      run: npm install
+      run: npm ci
     
     - name: Run tests
       working-directory: ./frontend
       run: npm test
     
     - name: Upload coverage
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: frontend-coverage
         path: frontend/coverage/
+        retention-days: 7
 
   # Job 3: Build and Push Backend
   build-backend:
@@ -76,13 +82,13 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      uses: docker/setup-buildx-action@v3
     
     - name: Login to Docker Hub
-      uses: docker/login-action@v2
+      uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
@@ -92,7 +98,7 @@ jobs:
       run: echo "VERSION=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
     
     - name: Build and push
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@v5
       with:
         context: ./backend
         push: true
@@ -101,6 +107,7 @@ jobs:
           ${{ secrets.DOCKER_USERNAME }}/${{ env.BACKEND_IMAGE }}:${{ steps.version.outputs.VERSION }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        platforms: linux/amd64
 
   # Job 4: Build and Push Frontend
   build-frontend:
@@ -110,13 +117,13 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      uses: docker/setup-buildx-action@v3
     
     - name: Login to Docker Hub
-      uses: docker/login-action@v2
+      uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
@@ -126,7 +133,7 @@ jobs:
       run: echo "VERSION=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
     
     - name: Build and push
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@v5
       with:
         context: ./frontend
         push: true
@@ -135,6 +142,7 @@ jobs:
           ${{ secrets.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE }}:${{ steps.version.outputs.VERSION }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        platforms: linux/amd64
 
   # Job 5: Deploy to Kubernetes (if tests pass)
   deploy:
@@ -145,7 +153,7 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Extract version
       id: version
@@ -175,13 +183,22 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Deployment Instructions:" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-        echo "kubectl apply -f k8s/" >> $GITHUB_STEP_SUMMARY
+        echo "# Download manifests" >> $GITHUB_STEP_SUMMARY
+        echo "gh run download" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "# Apply to cluster" >> $GITHUB_STEP_SUMMARY
+        echo "kubectl apply -f kubernetes-manifests/" >> $GITHUB_STEP_SUMMARY
         echo "kubectl rollout status deployment/backend" >> $GITHUB_STEP_SUMMARY
         echo "kubectl rollout status deployment/frontend" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Access Application:" >> $GITHUB_STEP_SUMMARY
+        echo "- Frontend: http://localhost:30300" >> $GITHUB_STEP_SUMMARY
+        echo "- Backend API: http://localhost:30500" >> $GITHUB_STEP_SUMMARY
 
     - name: Save manifests as artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: kubernetes-manifests
         path: k8s/
+        retention-days: 30
